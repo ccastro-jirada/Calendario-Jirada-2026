@@ -308,15 +308,31 @@ export default function App() {
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
-    let base = view === "month" ? EVENTS.filter(e => e.month === activeMonth)
-      : view === "global" ? EVENTS.filter(e => e.cat === globalCat)
-      : EVENTS;
-    return base.filter(e =>
-      (activeCat === "todos" || e.cat === activeCat) &&
+    const q = search.toLowerCase();
+    const matchesSearch = (e) => !q ||
+      e.name.toLowerCase().includes(q) ||
+      (e.note || "").toLowerCase().includes(q) ||
+      (e.clients || []).some(c => c.toLowerCase().includes(q));
+
+    if (view === "month") {
+      return EVENTS.filter(e =>
+        e.month === activeMonth &&
+        (activeCat === "todos" || e.cat === activeCat) &&
+        (activeClient === "todos" || (e.clients || []).includes(activeClient)) &&
+        matchesSearch(e)
+      );
+    }
+    if (view === "global") {
+      return EVENTS.filter(e =>
+        e.cat === globalCat &&
+        matchesSearch(e)
+      );
+    }
+    // view === "client"
+    return EVENTS.filter(e =>
       (activeClient === "todos" || (e.clients || []).includes(activeClient)) &&
-      (search === "" || e.name.toLowerCase().includes(search.toLowerCase()) ||
-        (e.note || "").toLowerCase().includes(search.toLowerCase()) ||
-        (e.clients || []).some(c => c.toLowerCase().includes(search.toLowerCase())))
+      (activeCat === "todos" || e.cat === activeCat) &&
+      matchesSearch(e)
     );
   }, [view, activeMonth, activeCat, globalCat, activeClient, search]);
 
@@ -366,12 +382,12 @@ export default function App() {
           </div>
           <div style={{ marginTop: "1rem" }}>
             <input type="text" placeholder="🔍  Buscar evento, artista, cliente, serie..."
-              value={search} onChange={e => setSearch(e.target.value)}
+              value={search} onChange={ev => setSearch(ev.target.value)}
               style={{ width: "100%", maxWidth: 460, padding: "0.55rem 1rem", background: "rgba(255,255,255,0.15)", border: "1.5px solid rgba(255,255,255,0.3)", borderRadius: 8, color: J.white, fontSize: "0.85rem", outline: "none", boxSizing: "border-box" }} />
           </div>
           <div style={{ marginTop: "0.9rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             {[{id:"month",label:"📅 Por Mes"},{id:"global",label:"🗂️ Por Categoría"},{id:"client",label:"🏷️ Por Cliente"}].map(v => (
-              <button key={v.id} onClick={() => setView(v.id)} style={{ padding: "0.4rem 1rem", borderRadius: 20, border: "1.5px solid rgba(255,255,255,0.4)", background: view === v.id ? J.yellow : "rgba(255,255,255,0.1)", color: view === v.id ? J.blueDeep : J.white, fontWeight: 700, fontSize: "0.8rem", transition: "all 0.15s" }}>
+              <button key={v.id} onClick={() => { setView(v.id); setActiveCat("todos"); setActiveClient("todos"); }} style={{ padding: "0.4rem 1rem", borderRadius: 20, border: "1.5px solid rgba(255,255,255,0.4)", background: view === v.id ? J.yellow : "rgba(255,255,255,0.1)", color: view === v.id ? J.blueDeep : J.white, fontWeight: 700, fontSize: "0.8rem", transition: "all 0.15s" }}>
                 {v.label}
               </button>
             ))}
